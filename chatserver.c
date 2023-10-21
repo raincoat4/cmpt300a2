@@ -7,12 +7,12 @@
 #include <string.h>
 
 int client(int sfd, fd_set rset){
-    char buff[1024]= " ";
+    
     for(;;){
         FD_ZERO(&rset);
         FD_SET(0,&rset);
         FD_SET(sfd, &rset);
-
+        char buff[1024]= " ";
         select(sfd +1, &rset, NULL, NULL, NULL);
 
         if(FD_ISSET(0,&rset)){
@@ -27,7 +27,6 @@ int client(int sfd, fd_set rset){
         }
     }
     close(sfd);
-    buff[1024] = " ";
     return 0;
 
 }
@@ -35,7 +34,7 @@ int client(int sfd, fd_set rset){
 int main(){
     int sfd, cfd; //sfd is our socket, cfd is the connection
     fd_set rset;
-    char buff[1024] = " ";
+    
     struct sockaddr_in server;
 
     sfd = socket(AF_INET, SOCK_STREAM, 0);
@@ -71,7 +70,7 @@ int main(){
         FD_ZERO(&rset);
         FD_SET(0, &rset);
         FD_SET(cfd, &rset); //cfd
-
+        char buff[1024] = " ";
         select(cfd+1, &rset, NULL, NULL, NULL);
 
         if (FD_ISSET(0, &rset)){//if rset is empty send a message
@@ -87,8 +86,6 @@ int main(){
     }
     close(cfd);
     close(sfd);
-    buff[1024] = " ";
-    FD_ZERO(&rset);
     return 0;
 }
 
