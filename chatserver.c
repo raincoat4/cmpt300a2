@@ -5,6 +5,9 @@
 #include <stdio.h>
 #include <arpa/inet.h>
 #include <string.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
 int client(int sfd, fd_set rset){
     
@@ -17,7 +20,8 @@ int client(int sfd, fd_set rset){
 
         if(FD_ISSET(0,&rset)){
             printf("Enter the message:\n");
-            scanf("%s", buff);
+            fgets(buff, 1024);
+            //scanf("%s", buff);
             write(sfd, buff, strlen(buff));
         }
 
@@ -75,7 +79,8 @@ int main(){
 
         if (FD_ISSET(0, &rset)){//if rset is empty send a message
             printf("Enter the message:\n");
-            scanf("%s", buff);
+            fgets(buff, 1024, stdin);
+            //scanf("%s", buff);
             write(cfd, buff, strlen(buff));
         }
 
