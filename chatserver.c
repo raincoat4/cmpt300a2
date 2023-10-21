@@ -5,7 +5,8 @@
 #include <stdio.h>
 #include <arpa/inet.h>
 #include <string.h>
-int client(int sfd, int cfd){
+
+int client(int sfd, int cfd, fd_set rset){
     char buff[1024]= " ";
     for(;;){
         FD_ZERO(&rset);
@@ -31,7 +32,7 @@ int client(int sfd, int cfd){
 
 }
 
-int main(arg){
+int main(){
     int sfd, cfd; //sfd is our socket, cfd is the connection
     fd_set rset;
     char buff[1024] = " ";
@@ -46,21 +47,23 @@ int main(arg){
 
     bzero(&server, sizeof(struct sockaddr_in));
     server.sin_family = AF_INET;
-    server.sin_port = htons(1005);
-    inet_aton("172.16.29.110", &server.sin_addr);
+    server.sin_port = htons(6005);
+    inet_aton("142.58.15.124", &server.sin_addr);
 
+    
+
+    printf("Attempting to connect\n");
+    if(connect(sfd, (struct sockaddr*)&server, sizeof(server))!=-1){
+        printf("Connection succeeded\n");
+        client(sfd, cfd,rset);
+        return 0;
+    }
+    printf("connection failed");
     if(bind(sfd, (struct sockaddr*)&server, sizeof(server)) < 0){
         printf("Binding failed. \n");
         return -1;
     }
 
-    printf("Attempting to connect\n");
-    if(connect(sfd, (struct sockaddr*)&server, sizeof(server))!=-1){
-        printf("Connection succeeded\n");
-        client(sfd, rset);
-        return 0;
-    }
-    
     listen(sfd, 7);
     cfd = accept(sfd, NULL, NULL);
     for (;;){

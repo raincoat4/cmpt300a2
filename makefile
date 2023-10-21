@@ -1,5 +1,5 @@
 make:
-	gcc -o test Assignment.c
+	gcc -o s-talk chatserver.c
 
 make clean:
 	
