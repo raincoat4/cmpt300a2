@@ -6,7 +6,7 @@
 #include <arpa/inet.h>
 #include <string.h>
 
-int client(int sfd, int cfd, fd_set rset){
+int client(int sfd, fd_set rset){
     char buff[1024]= " ";
     for(;;){
         FD_ZERO(&rset);
@@ -27,7 +27,7 @@ int client(int sfd, int cfd, fd_set rset){
         }
     }
     close(sfd);
-
+    buff[1024] = " ";
     return 0;
 
 }
@@ -55,10 +55,11 @@ int main(){
     printf("Attempting to connect\n");
     if(connect(sfd, (struct sockaddr*)&server, sizeof(server))!=-1){
         printf("Connection succeeded\n");
-        client(sfd, cfd,rset);
+        client(sfd,rset);
         return 0;
     }
-    printf("connection failed");
+
+    printf("connection failed\n");
     if(bind(sfd, (struct sockaddr*)&server, sizeof(server)) < 0){
         printf("Binding failed. \n");
         return -1;
@@ -86,7 +87,8 @@ int main(){
     }
     close(cfd);
     close(sfd);
-
+    buff[1024] = " ";
+    FD_ZERO(&rset);
     return 0;
 }
 
