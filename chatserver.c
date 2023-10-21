@@ -4,10 +4,6 @@
 #include <netinet/in.h>
 #include <stdio.h>
 #include <arpa/inet.h>
-#include <string.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
 
 int client(int sfd, fd_set rset){
     
@@ -20,7 +16,7 @@ int client(int sfd, fd_set rset){
 
         if(FD_ISSET(0,&rset)){
             printf("Enter the message:\n");
-            fgets(buff, 1024);
+            fgets(buff, 1024, stdin);
             //scanf("%s", buff);
             write(sfd, buff, strlen(buff));
         }
