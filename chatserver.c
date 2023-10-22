@@ -8,13 +8,21 @@
 
 int mport=6004;
 int yport=6005;
-
+//these will be needed for threads 
 void* sending(){
-
+    
 }
 
 void* receiving(){
 
+}
+
+void* print(){
+
+}
+
+void* writting(){
+    
 }
 
 int main (){
@@ -45,7 +53,7 @@ int main (){
         perror("bind failed");
         return 0;
     }
-    
+
     //setting up destination addr
     memset((char*)&youaddr,0,sizeof(youaddr));
     youaddr.sin_family = AF_INET; //protocall
@@ -64,7 +72,7 @@ int main (){
         FD_SET(tfd, &rset);
 
         //sending a message
-        //This will be 3 threads i think. one to read with fgets(), one to use sendto(), and maybe one to print enter msg might not be needed tho
+        //This will be 2 or 3 threads i think. one to read with fgets(), one to use sendto(), and maybe one to print enter msg might not be needed tho
         // Will need to lock buff for all three threads
         select(tfd+1,&rest, NULL,NULL );
         if(FD_ISSET(0,&rset)){
