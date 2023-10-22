@@ -6,7 +6,7 @@
 #include <arpa/inet.h>
 
 
-int mport=6004;
+int mport=6005;
 int yport=6005;
 
 void* sending(){
@@ -37,25 +37,20 @@ int main (){
 
     memset((char*)&myaddr,0,sizeof(myaddr));
     myaddr.sin_family = AF_INET; //protocall
-    myaddr.sin_addr.s_addr = inet_addr("142.58.15.124"); //use my ip address
+    myaddr.sin_addr.s_addr = inet_addr("127.0.0.1"); //use my ip address
     myaddr.sin_port=htons(mport);//my port
-
-    memset((char*)&youaddr,0,sizeof(youaddr));
-    youaddr.sin_family = AF_INET; //protocall
-    youaddr.sin_addr.s_addr = inet_addr("127.0.1.1"); //their ip
-    youaddr.sin_port=htons(yport);//their port
-
-
-
-    if(bind(tfd, (struct sockaddr*)&youaddr, sizeof(youaddr))<0){
-        perror("bind failed");
-        return 0;
-    }
-
     if(bind(mfd, (struct sockaddr*)&myaddr, sizeof(myaddr))<0){
         perror("bind failed");
         return 0;
     }
+    memset((char*)&youaddr,0,sizeof(youaddr));
+    youaddr.sin_family = AF_INET; //protocall
+    youaddr.sin_port=htons(yport);//their port
+    if (inet_aton("127.0.0.1", &youaddr.sin_addr)==0) {
+		fprintf(stderr, "inet_aton() failed\n");
+	}
+
+    
     
     int recvlen;
     for(;;){
