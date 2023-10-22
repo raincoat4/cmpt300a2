@@ -1,98 +1,45 @@
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <fcntl.h>
-#include <netinet/in.h>
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 #include <arpa/inet.h>
 
-int client(int sfd, fd_set rset){
-    struct sockaddr_in server;
+#define BUF_SIZE 1024
+#define PORT 6005
 
-    for(;;){
-        FD_ZERO(&rset);
-        FD_SET(0,&rset);
-        FD_SET(sfd, &rset);
-        char buff[1024]= " ";
+int main() {
+    int sockfd;
+    struct sockaddr_in peer_addr;
+    socklen_t addr_len = sizeof(peer_addr);
+    char buffer[BUF_SIZE];
 
-        select(sfd +1, &rset, NULL, NULL, NULL);
-
-        if(FD_ISSET(0,&rset)){
-            printf("Enter the message:\n");
-            fgets(buff, 1024, stdin);//listening for keyboard input
-            //scanf("%s", buff);
-            sendto(sfd, buff, strlen(buff),0, (struct sockaddr*)&server, addr_len);//writing to UDP datagram
-        }
-
-        if(FD_ISSET(sfd, &rset)){
-            recvfrom(sfd, buff, 1024,1024,0,(struct sockaddr*)&server, addr_len);//receiving datagram
-            printf("Message received: %s\n", buff);//printing message to screen
-        }
-    }
-    close(sfd);
-
-    return 0;
-
-}
-/*
-int server(int sfd, fd_set rset){
-    struct sockaddr_in server;
-
-    for(;;){
-        FD_ZERO(&rset);
-        FD_SET(0,&rset);
-        FD_SET(sfd, &rset);
-        char buff[1024]= " ";
-
-        select(sfd +1, &rset, NULL, NULL, NULL);
-
-        if(FD_ISSET(0,&rset)){
-            printf("Enter the message:\n");
-            fgets(buff, 1024, stdin);//listening for keyboard input
-            //scanf("%s", buff);
-            sendto(sfd, buff, strlen(buff),0, (struct sockaddr*)&server, addr_len);//writing to UDP datagram
-        }
-
-        if(FD_ISSET(sfd, &rset)){
-            recvfrom(sfd, buff, 1024,1024,0,(struct sockaddr*)&server, addr_len);//receiving datagram
-            printf("Message received: %s\n", buff);//printing message to screen
-        }
-    }
-    close(sfd);
-
-    return 0;
-
-}
-*/
-
-int main(){
-    int sfd; //sfd is our socket, cfd is the connection
-    fd_set rset;
-    
-    struct sockaddr_in server;
-    socklen_t addr_len = sizeof(client);
-
-    sfd = socket(AF_INET, SOCK_STREAM, 0);
-
-    if(sfd < 0){
-        printf("Socket creation failed. \n");
-        return -1;
+    // Create socket
+    sockfd = socket(AF_INET, SOCK_DGRAM, 0);
+    if (sockfd < 0) {
+        perror("socket");
+        exit(EXIT_FAILURE);
     }
 
-    bzero(&server, sizeof(struct sockaddr_in));
-    server.sin_family = AF_INET;
-    server.sin_port = htons(6005);
-    inet_aton("142.58.15.124", &server.sin_addr);
-    server.sin_addr.s_addr = htonl(INADDR_ANY);
-    
+    // Configure peer address
+    memset(&peer_addr, 0, sizeof(peer_addr));
+    peer_addr.sin_family = AF_INET;
+    peer_addr.sin_port = htons(PORT);
+    inet_aton("127.0.0.1", &peer_addr.sin_addr);
 
-    if(bind(sfd, (struct sockaddr*)&server, sizeof(server)) < 0){
-        printf("Binding failed. \n");
-        return -1;
+    while (1) {
+        // Send message to peer
+        printf("Enter message: ");
+        fgets(buffer, BUF_SIZE, stdin);
+        sendto(sockfd, buffer, strlen(buffer), 0, (struct sockaddr*)&peer_addr, addr_len);
+
+        // Receive response from peer
+        memset(buffer, 0, sizeof(buffer));
+        int recv_len = recvfrom(sockfd, buffer, BUF_SIZE, 0, (struct sockaddr*)&peer_addr, &addr_len);
+
+        if (recv_len > 0) {
+            printf("Peer: %s\n", buffer);
+        }
     }
 
-    client(sfd, rset);
-
+    close(sockfd);
     return 0;
 }
-
-
