@@ -5,89 +5,81 @@
 #include <stdio.h>
 #include <arpa/inet.h>
 
-int client(int sfd, fd_set rset){
-    
-    for(;;){
-        FD_ZERO(&rset);
-        FD_SET(0,&rset);
-        FD_SET(sfd, &rset);
-        char buff[1024]= " ";
-        select(sfd +1, &rset, NULL, NULL, NULL);
 
-        if(FD_ISSET(0,&rset)){
-            printf("Enter the message:\n");
-            fgets(buff, 1024, stdin);
-            //scanf("%s", buff);
-            write(sfd, buff, strlen(buff));
-        }
+int mport=6004;
+int yport=6005;
 
-        if(FD_ISSET(sfd, &rset)){
-            read(sfd, buff, 1024);
-            printf("Message received: %s\n", buff);
-        }
-    }
-    close(sfd);
-    return 0;
+void* sending(){
 
 }
 
-int main(){
-    int sfd, cfd; //sfd is our socket, cfd is the connection
+void* receiving(){
+
+}
+
+int main (){
+    int mfd, tfd;
     fd_set rset;
+    char buff[1024]=" ";
+
+    struct sockaddr_in myaddr;
+    struct sockaddr_in youaddr;
     
-    struct sockaddr_in server;
-
-    sfd = socket(AF_INET, SOCK_STREAM, 0);
-
-    if(sfd < 0){
-        printf("Socket creation failed. \n");
-        return -1;
-    }
-
-    bzero(&server, sizeof(struct sockaddr_in));
-    server.sin_family = AF_INET;
-    server.sin_port = htons(6005);
-    inet_aton("142.58.15.124", &server.sin_addr);
-
-    
-
-    printf("Attempting to connect\n");
-    if(connect(sfd, (struct sockaddr*)&server, sizeof(server))!=-1){
-        printf("Connection succeeded\n");
-        client(sfd,rset);
+    if((mfd=socket(AF_INET, SOCK_DGRAM, 0))<0){
+        perror("cannot create socket");
         return 0;
     }
 
-    printf("connection failed\n");
-    if(bind(sfd, (struct sockaddr*)&server, sizeof(server)) < 0){
-        printf("Binding failed. \n");
-        return -1;
+    if((tfd=socket(AF_INET, SOCK_DGRAM, 0))<0){
+        perror("cannot create socket");
+        return 0;
     }
 
-    listen(sfd, 7);
-    cfd = accept(sfd, NULL, NULL);
-    for (;;){
+    memset((char*)&myaddr,0,sizeof(myaddr));
+    myaddr.sin_family = AF_INET; //protocall
+    myaddr.sin_addr.s_addr = inet_addr("142.58.15.124"); //use my ip address
+    myaddr.sin_port=htons(mport);//my port
+    if(bind(mfd, (struct sockaddr*)&myaddr, sizeof(myaddr))<0){
+        perror("bind failed");
+        return 0;
+    }
+    memset((char*)&youaddr,0,sizeof(youaddr));
+    youaddr.sin_family = AF_INET; //protocall
+    youaddr.sin_port=htons(yport);//their port
+    if (inet_aton("142.58.15.124", &youaddr.sin_addr)==0) {
+		fprintf(stderr, "inet_aton() failed\n");
+	}
+
+    
+    
+    int recvlen;
+    for(;;){
         FD_ZERO(&rset);
-        FD_SET(0, &rset);
-        FD_SET(cfd, &rset); //cfd
-        char buff[1024] = " ";
-        select(cfd+1, &rset, NULL, NULL, NULL);
+        FD_SET(0,&rset);
+        FD_SET(tfd, &rset);
 
-        if (FD_ISSET(0, &rset)){//if rset is empty send a message
-            printf("Enter the message:\n");
-            fgets(buff, 1024, stdin);
-            //scanf("%s", buff);
-            write(cfd, buff, strlen(buff));
+        select(tfd+1,&rest, NULL,NULL );
+        if(FD_ISSET(0,&rset)){
+            printf("enter the message\n");
+            fgets(buff,1024,stdin);
+            if(sendto(tfd, buff, 1024, 0, (struct sockaddr*)&youaddr, sizeof(youaddr))<0){
+                perror("sendto failed");
+            }
         }
 
-        if(FD_ISSET(cfd, &rset)){//receiving a message
-            read(cfd, buff, 1024);
-            printf("Message received; %s\n", buff);
+        if(FD_ISSET(tfd,&rset)){
+            printf("waiting on port %d\n", mport);
+            recvlen=recvfrom(tfd, buff, 1024,0,(struct sockaddr*)&myaddr,sizeof(myaddr));
+            printf("received %d bytes\n", recvlen);
+            if(recvlen>0){
+                buff[recvlen]=0;
+                printf("received message: \"%s\"\n", buff);
+            }
         }
     }
-    close(cfd);
-    close(sfd);
+    //sending messages
+    
+    //receiving messages
     return 0;
 }
-
 
