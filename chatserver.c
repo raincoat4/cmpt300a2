@@ -23,7 +23,7 @@ int main() {
     memset(&peer_addr, 0, sizeof(peer_addr));
     peer_addr.sin_family = AF_INET;
     peer_addr.sin_port = htons(PORT);
-    inet_aton("127.0.0.1", &peer_addr.sin_addr);
+    inet_aton("142.58.15.124", &peer_addr.sin_addr);
 
     while (1) {
         // Send message to peer
