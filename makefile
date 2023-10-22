@@ -1,5 +1,7 @@
-make:
-	gcc -o s-talk chatserver.c
+CC=gcc
 
-make clean:
+s-talk: 
+	${CC} -o s-talk chatserver.c
 	
+clean:
+	rm *.o

@@ -22,7 +22,7 @@ void* print(){
 }
 
 void* writting(){
-    
+
 }
 
 int main (){
@@ -40,10 +40,7 @@ int main (){
     }
 
     //destination socket
-    if((tfd=socket(AF_INET, SOCK_DGRAM, 0))<0){
-        perror("cannot create socket");
-        return 0;
-    }
+
     //setting up my addr and binding it to a socket
     memset((char*)&myaddr,0,sizeof(myaddr));
     myaddr.sin_family = AF_INET; //protocall
@@ -53,7 +50,7 @@ int main (){
         perror("bind failed");
         return 0;
     }
-
+    
     //setting up destination addr
     memset((char*)&youaddr,0,sizeof(youaddr));
     youaddr.sin_family = AF_INET; //protocall
@@ -69,16 +66,15 @@ int main (){
         //resetting msg
         FD_ZERO(&rset);
         FD_SET(0,&rset);
-        FD_SET(tfd, &rset);
+        FD_SET(mfd, &rset);
 
         //sending a message
         //This will be 2 or 3 threads i think. one to read with fgets(), one to use sendto(), and maybe one to print enter msg might not be needed tho
         // Will need to lock buff for all three threads
-        select(tfd+1,&rest, NULL,NULL );
         if(FD_ISSET(0,&rset)){
             printf("enter the message\n");
             fgets(buff,1024,stdin);
-            if(sendto(tfd, buff, 1024, 0, (struct sockaddr*)&youaddr, sizeof(youaddr))<0){
+            if(sendto(mfd, buff, 1024, 0, (struct sockaddr*)&youaddr, sizeof(youaddr))<0){
                 perror("sendto failed");
             }
         }
@@ -86,9 +82,9 @@ int main (){
         //receiving a message 
         //this will be 2 threads i think. One to use recvfrom and the other to print the msg
         //Will need to lock buff for both threads
-        if(FD_ISSET(tfd,&rset)){
+        if(FD_ISSET(mfd,&rset)){
             printf("waiting on port %d\n", mport);
-            recvlen=recvfrom(tfd, buff, 1024,0,(struct sockaddr*)&myaddr,sizeof(myaddr));
+            recvlen=recvfrom(mfd, buff, 1024,0,(struct sockaddr*)&myaddr,sizeof(myaddr));
             printf("received %d bytes\n", recvlen);
             //if(recvlen>0){
                 buff[recvlen]=0;
