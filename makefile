@@ -1,7 +1,12 @@
 CC=gcc
+CFLAGS = -w -o
 
-s-talk: 
-	${CC} -o s-talk chatserver.c
+make: chatserver.c
+	${CC} $(CFLAGS) s-talk chatserver.c
 	
+s-talk: 
+	./s-talk 
+
+.PHONY: s-talk
 clean:
-	rm *.o
+	rm s-talk
