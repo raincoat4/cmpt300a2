@@ -56,16 +56,17 @@ int main (){
         perror("bind failed");
         return 0;
     }
-    printf("enter the message\n");
-    fgets(buff,1024,stdin);
-
-    if(sendto(tfd, buff, 1024, 0, (struct sockaddr*)&youaddr, sizeof(youaddr))<0){
-        perror("sento failed");
-        
-    }
+    
     int recvlen;
     for(;;){
-        printf("waiting on port%d\n", mport);
+        printf("enter the message\n");
+        fgets(buff,1024,stdin);
+
+        if(sendto(tfd, buff, 1024, 0, (struct sockaddr*)&youaddr, sizeof(youaddr))<0){
+            perror("sento failed");
+        
+        }
+        printf("waiting on port %d\n", mport);
         recvlen=recvfrom(tfd, buff, 1024,0,(struct sockaddr*)&myaddr,sizeof(myaddr));
         printf("received %d bytes\n", recvlen);
         if(recvlen>0){
