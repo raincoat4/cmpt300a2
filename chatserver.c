@@ -1,45 +1,82 @@
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <fcntl.h>
+#include <netinet/in.h>
 #include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
 #include <arpa/inet.h>
 
-#define BUF_SIZE 1024
-#define PORT 6005
 
-int main() {
-    int sockfd;
-    struct sockaddr_in peer_addr;
-    socklen_t addr_len = sizeof(peer_addr);
-    char buffer[BUF_SIZE];
+int mport=6004;
+int yport=6005;
 
-    // Create socket
-    sockfd = socket(AF_INET, SOCK_DGRAM, 0);
-    if (sockfd < 0) {
-        perror("socket");
-        exit(EXIT_FAILURE);
+void* sending(){
+
+}
+
+void* receiving(){
+
+}
+
+int main (){
+    int mfd, tfd;
+    fd_set rset;
+    char buff[1024]=" ";
+
+    struct sockaddr_in myaddr;
+    struct sockaddr_in youaddr;
+
+    if((mfd=socket(AF_INET, SOCK_DGRAM, 0))<0){
+        perror("cannot create socket");
+        return 0;
     }
 
-    // Configure peer address
-    memset(&peer_addr, 0, sizeof(peer_addr));
-    peer_addr.sin_family = AF_INET;
-    peer_addr.sin_port = htons(PORT);
-    inet_aton("142.58.15.124", &peer_addr.sin_addr);
+    if((tfd=socket(AF_INET, SOCK_DGRAM, 0))<0){
+        perror("cannot create socket");
+        return 0;
+    }
 
-    while (1) {
-        // Send message to peer
-        printf("Enter message: ");
-        fgets(buffer, BUF_SIZE, stdin);
-        sendto(sockfd, buffer, strlen(buffer), 0, (struct sockaddr*)&peer_addr, addr_len);
+    memset((char*)&myaddr,0,sizeof(myaddr));
+    myaddr.sin_family = AF_INET; //protocall
+    myaddr.sin_addr.s_addr = inet_addr("142.58.15.124"); //use my ip address
+    myaddr.sin_port=htons(mport);//my port
 
-        // Receive response from peer
-        memset(buffer, 0, sizeof(buffer));
-        int recv_len = recvfrom(sockfd, buffer, BUF_SIZE, 0, (struct sockaddr*)&peer_addr, &addr_len);
+    memset((char*)&youaddr,0,sizeof(youaddr));
+    youaddr.sin_family = AF_INET; //protocall
+    youaddr.sin_addr.s_addr = inet_addr("127.0.1.1"); //their ip
+    youaddr.sin_port=htons(yport);//their port
 
-        if (recv_len > 0) {
-            printf("Peer: %s\n", buffer);
+
+
+    if(bind(tfd, (struct sockaddr*)&youaddr, sizeof(youaddr))<0){
+        perror("bind failed");
+        return 0;
+    }
+
+    if(bind(mfd, (struct sockaddr*)&myaddr, sizeof(myaddr))<0){
+        perror("bind failed");
+        return 0;
+    }
+    printf("enter the message\n");
+    fgets(buff,1024,stdin);
+
+    if(sendto(tfd, buff, 1024, 0, (struct sockaddr*)&youaddr, sizeof(youaddr))<0){
+        perror("sento failed");
+        
+    }
+    int recvlen;
+    for(;;){
+        printf("waiting on port%d\n", mport);
+        recvlen=recvfrom(tfd, buff, 1024,0,(struct sockaddr*)&myaddr,sizeof(myaddr));
+        printf("received %d bytes\n", recvlen);
+        if(recvlen>0){
+            buff[recvlen]=0;
+            printf("received message: \"%s\"\n", buff);
         }
+        
     }
-
-    close(sockfd);
+    //sending messages
+    
+    //receiving messages
     return 0;
 }
+
