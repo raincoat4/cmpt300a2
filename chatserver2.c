@@ -87,7 +87,7 @@ void* sendMessage(void *sendingList){
     //printf("%s\n", buffMoving);
     //strcpy(buffMoving, buff);
     
-    if(sendto(mfd, buffMoving, sizeof(buffMoving), 0, (struct sockaddr*)&youaddr, (size_t)sizeof(youaddr))<0){
+    if(sendto(mfd, &buffMoving, sizeof(buffMoving), 0, (struct sockaddr*)&youaddr, (size_t)sizeof(youaddr))<0){
         perror("sendto failed");
     }
 
@@ -101,9 +101,9 @@ void* receiveMessage(void *receivingList){
     pthread_mutex_lock(&mutexbuff);
   
     char* buffMoving=(char*)malloc(1024);
-    recvfrom(mfd, buffMoving, 1024,0,(struct sockaddr*)&myaddr,(socklen_t*)sizeof(myaddr));
+    recvfrom(mfd, &buffMoving, 1024,0,(struct sockaddr*)&myaddr,(socklen_t*)sizeof(myaddr));
     List_append(receivingList, &buffMoving);
-    free(buffMoving);
+    
     pthread_mutex_unlock(&mutexbuff);
 }
 
@@ -117,7 +117,7 @@ void* printMessage(void *receivingList){
     
     //maybe use recvlen instead?
     printf("received message: \"%s\" \n", buffMoving);
-    free(buffMoving);
+    //free(buffMoving);
     pthread_mutex_unlock(&mutexbuff);
 }
 
@@ -147,7 +147,7 @@ int main (int argc, char *argv[]){
     //setting up my addr and binding it to a socket
     memset((char*)&myaddr,0,sizeof(myaddr));
     myaddr.sin_family = AF_INET; //protocall
-    myaddr.sin_addr.s_addr = inet_addr(ip); //use my ip address
+    myaddr.sin_addr.s_addr = htonl(INADDR_ANY); //use my ip address
     myaddr.sin_port=htons(mport);//my port
     if(bind(mfd, (struct sockaddr*)&myaddr, sizeof(myaddr))<0){//binding my socket
         perror("bind failed");
