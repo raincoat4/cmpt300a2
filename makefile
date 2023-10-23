@@ -1,7 +1,8 @@
 CC=gcc
+CLFAGS = -o
 
 s-talk: 
-	${CC} -o s-talk chatserver.c
-	
+	${CC} ${CFLAGS} s-talk chatserver.c
+
 clean:
-	rm *.o
+	rm s-talk

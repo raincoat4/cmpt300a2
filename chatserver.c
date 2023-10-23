@@ -50,33 +50,20 @@ char* getIP(char* hostName){
     strcpy(result, ipstr);
     return result;
 }
-//these will be needed for threads 
-void* sending(){
-    
-}
-
-void* receiving(){
-
-}
-
-void* print(){
-
-}
-
-void* writting(){
-
-}
 
 int main (int argc, char *argv[]){
-    int mfd, tfd;
+    int mfd;
     fd_set rset;//i think this is where you use the list ADT from assignment 1 not sure tho
     char buff[1024]=" ";
     int mport = atoi(argv[1]);
     char* ip = getIP(argv[2]);
+
     if(!ip){
         return 0;
     }
     int yport = atoi(argv[3]);
+    printf("%d\n", yport);
+    printf("%d\n", mport);
     struct sockaddr_in myaddr;
     struct sockaddr_in youaddr;
     
@@ -105,37 +92,30 @@ int main (int argc, char *argv[]){
     if (inet_aton(ip, &youaddr.sin_addr)==0) {//setting destination addr
 		fprintf(stderr, "inet_aton() failed\n");
 	}
-    
-    int recvlen;
+
     for(;;){
         //resetting msg
-        FD_ZERO(&rset);
-        FD_SET(0,&rset);
-        FD_SET(mfd, &rset);
-
         //sending a message
         //This will be 2 or 3 threads i think. one to read with fgets(), one to use sendto(), and maybe one to print enter msg might not be needed tho
         // Will need to lock buff for all three threads
-        if(FD_ISSET(0,&rset)){
+        //if(FD_ISSET(0,&rset)){
+        
             printf("enter the message\n");
             fgets(buff,1024,stdin);
             if(sendto(mfd, buff, 1024, 0, (struct sockaddr*)&youaddr, sizeof(youaddr))<0){
                 perror("sendto failed");
             }
-        }
+        //}
 
         //receiving a message 
         //this will be 2 threads i think. One to use recvfrom and the other to print the msg
         //Will need to lock buff for both threads
-        if(FD_ISSET(mfd,&rset)){
+        //if(FD_ISSET(mfd,&rset)){
             printf("waiting on port %d\n", mport);
-            recvlen=recvfrom(mfd, buff, 1024,0,(struct sockaddr*)&myaddr,sizeof(myaddr));
+            recvfrom(mfd, buff, 1024,0,(struct sockaddr*)&myaddr,sizeof(myaddr));
             printf("received %d bytes\n", recvlen);
-            //if(recvlen>0){
-                buff[recvlen]=0;
-                printf("received message: \"%s\" \n", buff);
-            //}
-        }
+            printf("received message: %s ", buff);
+
     }
     //sending messages
     
@@ -143,4 +123,3 @@ int main (int argc, char *argv[]){
     free(ip); //free ip because it was dynamically allocaged
     return 0;
 }
-
