@@ -15,9 +15,8 @@
 //how do we allow all threads to access variables
 //like arguments taken from main
 //also not sure how the for loop is gonna work for this
-char buff[1024]=" ";
-char* buffMoving;
-pthread_mutex_t mutexlist;
+
+pthread_mutex_t mutexlist, mutexbuff;
 int mfd;
 Node* voidP;
 struct sockaddr_in myaddr;
@@ -62,42 +61,64 @@ char* getIP(char* hostName){
 }
 
 void* readingInput(void *sendingList){
+    pthread_mutex_lock(&mutexbuff);
     printf("enter the message\n");
+    char buff[1024]=" ";
+    char* buffMoving=(char*)malloc(sizeof(char)*1024);
     fgets(buff,1024,stdin);
-    pthread_mutex_lock(&mutexlist);
-    List_append(sendingList, &buff);
-    pthread_mutex_unlock(&mutexlist);
+    strcpy(buff, buffMoving);
+    List_append(sendingList, &buffMoving);
+ 
+    pthread_mutex_unlock(&mutexbuff);
+    
 }
 
 void* sendMessage(void *sendingList){
     //pull a message out ofthe list and assign it to buff
-    pthread_mutex_lock(&mutexlist);
+    
+    pthread_mutex_lock(&mutexbuff);
+    
+   
+    
     voidP = List_remove(sendingList);
-    pthread_mutex_unlock(&mutexlist);
-    buffMoving = voidP->item;
-    strcpy(buffMoving, buff);
-    if(sendto(mfd, buff, 1024, 0, (struct sockaddr*)&youaddr, sizeof(youaddr))<0){
+    
+    char *buffMoving = (voidP)->pItem;
+
+    //printf("%s\n", buffMoving);
+    //strcpy(buffMoving, buff);
+    
+    if(sendto(mfd, buffMoving, sizeof(buffMoving), 0, (struct sockaddr*)&youaddr, (size_t)sizeof(youaddr))<0){
         perror("sendto failed");
     }
+
+   
+    
+    pthread_mutex_unlock(&mutexbuff);
 }
 
 void* receiveMessage(void *receivingList){
-    //printf("waiting on port %d\n", mport);
-    recvfrom(mfd, buff, 1024,0,(struct sockaddr*)&myaddr,sizeof(myaddr));
-    pthread_mutex_lock(&mutexlist);
-    List_append(receivingList, &buff);
-    pthread_mutex_unlock(&mutexlist);
+  
+    pthread_mutex_lock(&mutexbuff);
+  
+    char* buffMoving=(char*)malloc(1024);
+    recvfrom(mfd, buffMoving, 1024,0,(struct sockaddr*)&myaddr,(socklen_t*)sizeof(myaddr));
+    List_append(receivingList, &buffMoving);
+    free(buffMoving);
+    pthread_mutex_unlock(&mutexbuff);
 }
 
 void* printMessage(void *receivingList){
     //pull a message out of the list and assign it to buff
-    pthread_mutex_lock(&mutexlist);
+    pthread_mutex_lock(&mutexbuff);
+    char* buffMoving=(char*)malloc(1024);
     voidP = List_remove(receivingList);
-    pthread_mutex_unlock(&mutexlist);
-    buffMoving = voidP->item;
-    strcpy(buffMoving, buff);
+
+    buffMoving = voidP->pItem;
+    
     //maybe use recvlen instead?
-    printf("received message: \"%s\" \n", buff);
+    printf("received message: \"%s\" \n", buffMoving);
+    free(buffMoving);
+    pthread_mutex_unlock(&mutexbuff);
 }
 
 int main (int argc, char *argv[]){
@@ -108,6 +129,7 @@ int main (int argc, char *argv[]){
     List* sendingList = List_create();
     List* receivingList = List_create();
     pthread_mutex_init(&mutexlist, NULL);
+    pthread_mutex_init(&mutexbuff, NULL);
     int mport = atoi(argv[1]);
     char* ip = getIP(argv[2]);
     if(!ip){
@@ -141,11 +163,18 @@ int main (int argc, char *argv[]){
 	}
 
     for(;;){
-        iret1 = pthread_create(&readInput, NULL, readingInput, (void*)sendingList);
-        iret2 = pthread_create(&sendMsg, NULL, sendMessage, (void*)sendingList);
-        iret3 = pthread_create(&receiveMsg, NULL, receiveMessage, (void*)receivingList);
+        pthread_create(&readInput, NULL, readingInput, (void*)sendingList);
+        pthread_join(readInput, NULL);
+        
+     
+        pthread_create(&sendMsg, NULL, sendMessage, (void*)sendingList);
         pthread_join(sendMsg, NULL);
+        
+
+        pthread_create(&receiveMsg, NULL, receiveMessage, (void*)receivingList);
         pthread_join(receiveMsg, NULL);
-        iret4 = pthread_create(&printMsg, NULL, printMessage, (void*)receivingList);
+
+        pthread_create(&printMsg, NULL, printMessage, (void*)receivingList);
+        pthread_join(printMsg,NULL);
     }
 }
