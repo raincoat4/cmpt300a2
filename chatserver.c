@@ -4,10 +4,52 @@
 #include <netinet/in.h>
 #include <stdio.h>
 #include <arpa/inet.h>
+#include <string.h>
+#include <netinet/in.h>
+#include <netdb.h>
+#include <stdlib.h>
 
+//int mport=6004;
+//int yport=6005;
 
-int mport=6004;
-int yport=6005;
+char* getIP(char* hostName){
+    struct addrinfo hints, *res, *p;
+    int status;
+    char ipstr[INET6_ADDRSTRLEN];
+
+    memset(&hints, 0, sizeof hints);
+    hints.ai_family = AF_UNSPEC;
+    hints.ai_socktype = SOCK_STREAM;
+
+    if((status = getaddrinfo(hostName, NULL, &hints, &res)) != 0){
+        fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(status));
+        return NULL;
+    }
+
+    //printf("IP addresses for %s:\n\n", hostName);
+    
+    for(p = res; p != NULL; p = p->ai_next){
+        void *addr;
+        //char *ipver;
+        if(p->ai_family == AF_INET){
+            struct sockaddr_in *ipv4 = (struct sockaddr_in *)p->ai_addr;
+            addr = &(ipv4->sin_addr);
+            //ipver = "IPv4";
+        }
+        else{
+            struct sockaddr_in6 *ipv6 = (struct sockaddr_in6 *)p->ai_addr;;
+            addr = &(ipv6->sin6_addr);
+            //ipver = "IPv6";
+        }
+        inet_ntop(p->ai_family, addr, ipstr, sizeof ipstr);
+        //printf(" %s: %s\n", ipver, ipstr);
+    }
+    freeaddrinfo(res);
+
+    char* result = malloc(strlen(ipstr)+1);
+    strcpy(result, ipstr);
+    return result;
+}
 //these will be needed for threads 
 void* sending(){
     
@@ -25,11 +67,16 @@ void* writting(){
 
 }
 
-int main (){
+int main (int argc, char *argv[]){
     int mfd, tfd;
     fd_set rset;//i think this is where you use the list ADT from assignment 1 not sure tho
     char buff[1024]=" ";
-
+    int mport = atoi(argv[1]);
+    char* ip = getIP(argv[2]);
+    if(!ip){
+        return 0;
+    }
+    int yport = atoi(argv[3]);
     struct sockaddr_in myaddr;
     struct sockaddr_in youaddr;
     
@@ -44,7 +91,7 @@ int main (){
     //setting up my addr and binding it to a socket
     memset((char*)&myaddr,0,sizeof(myaddr));
     myaddr.sin_family = AF_INET; //protocall
-    myaddr.sin_addr.s_addr = inet_addr("142.58.15.124"); //use my ip address
+    myaddr.sin_addr.s_addr = htonl(INADDR_ANY); //use my ip address
     myaddr.sin_port=htons(mport);//my port
     if(bind(mfd, (struct sockaddr*)&myaddr, sizeof(myaddr))<0){//binding my socket
         perror("bind failed");
@@ -55,11 +102,9 @@ int main (){
     memset((char*)&youaddr,0,sizeof(youaddr));
     youaddr.sin_family = AF_INET; //protocall
     youaddr.sin_port=htons(yport);//their port
-    if (inet_aton("142.58.15.124", &youaddr.sin_addr)==0) {//setting destination addr
+    if (inet_aton(ip, &youaddr.sin_addr)==0) {//setting destination addr
 		fprintf(stderr, "inet_aton() failed\n");
 	}
-
-    
     
     int recvlen;
     for(;;){
@@ -95,6 +140,7 @@ int main (){
     //sending messages
     
     //receiving messages
+    free(ip); //free ip because it was dynamically allocaged
     return 0;
 }
 
