@@ -6,8 +6,8 @@
 #include <arpa/inet.h>
 
 
-int mport=6004;
-int yport=6005;
+int mport=6005;
+int yport=6004;
 //these will be needed for threads 
 void* sending(){
     
@@ -44,7 +44,7 @@ int main (){
     //setting up my addr and binding it to a socket
     memset((char*)&myaddr,0,sizeof(myaddr));
     myaddr.sin_family = AF_INET; //protocall
-    myaddr.sin_addr.s_addr = inet_addr("142.58.15.124"); //use my ip address
+    myaddr.sin_addr.s_addr = htonl(INADDR_ANY); //use my ip address
     myaddr.sin_port=htons(mport);//my port
     if(bind(mfd, (struct sockaddr*)&myaddr, sizeof(myaddr))<0){//binding my socket
         perror("bind failed");
@@ -55,7 +55,7 @@ int main (){
     memset((char*)&youaddr,0,sizeof(youaddr));
     youaddr.sin_family = AF_INET; //protocall
     youaddr.sin_port=htons(yport);//their port
-    if (inet_aton("142.58.15.124", &youaddr.sin_addr)==0) {//setting destination addr
+    if (inet_aton("142.58.15.127", &youaddr.sin_addr)==0) {//setting destination addr
 		fprintf(stderr, "inet_aton() failed\n");
 	}
 
@@ -88,7 +88,7 @@ int main (){
             printf("received %d bytes\n", recvlen);
             //if(recvlen>0){
                 buff[recvlen]=0;
-                printf("received message: \"%s\" \n", buff);
+                printf("received message: %s \n", buff);
             //}
         }
     }
