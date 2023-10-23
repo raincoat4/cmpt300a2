@@ -1,8 +1,9 @@
 CC=gcc
-CLFAGS = -o
+CFLAGS = -o
 
-s-talk: 
-	${CC} ${CFLAGS} s-talk chatserver.c
-
+s-talk:
+	${CC} -c chatserver2.c list.c
+	${CC} -o run -pthread chatserver2.o list.o
+.PHONY:s-talk
 clean:
-	rm s-talk
+	rm s-talk *.o run
