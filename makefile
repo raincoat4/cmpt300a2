@@ -6,4 +6,4 @@ s-talk:
 	${CC} -o s-talk -pthread chatserver2.o list.o
 .PHONY:s-talk
 clean:
-	rm s-talk *.o
+	rm s-talk chatserver2.o
