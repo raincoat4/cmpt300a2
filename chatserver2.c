@@ -63,10 +63,9 @@ char* getIP(char* hostName){
 void* readingInput(void *sendingList){
     pthread_mutex_lock(&mutexbuff);
     printf("enter the message\n");
-    char buff[1024]=" ";
-    char* buffMoving=(char*)malloc(sizeof(char)*1024);
-    fgets(buff,1024,stdin);
-    strcpy(buff, buffMoving);
+    char* buffMoving;
+    fgets(buffMoving,1024,stdin);
+    
     List_append(sendingList, &buffMoving);
  
     pthread_mutex_unlock(&mutexbuff);
