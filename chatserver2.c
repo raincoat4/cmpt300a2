@@ -17,11 +17,11 @@
 //also not sure how the for loop is gonna work for this
 
 pthread_mutex_t mutexlist, mutexbuff;
-int mfd;
+int mfd=0;
 Node* voidP;
 struct sockaddr_in myaddr;
 struct sockaddr_in youaddr;
-char* buffMoving;
+char* buffMoving="";
 char* getIP(char* hostName){
     struct addrinfo hints, *res, *p;
     int status;
@@ -62,31 +62,31 @@ char* getIP(char* hostName){
 }
 
 void* readingInput(void *sendingList){
-    pthread_mutex_lock(&mutexbuff);
-    printf("enter the message\n");
+    pthread_mutex_lock(&mutexlist);
+    //printf("enter the message\n");
     
     fgets(buffMoving,1024,stdin);
-    
+    buffMoving[strcspn(buffMoving,"\n")]='\0';
 
-    List_append(sendingList, buffMoving);
+    List_append(sendingList, &buffMoving);
     
-    printf("hi from reading input\n");
-    pthread_mutex_unlock(&mutexbuff);
+    //printf("hi from reading input\n");
+    pthread_mutex_unlock(&mutexlist);
     
 }
 
 void* sendMessage(void *sendingList){
     //pull a message out ofthe list and assign it to buff
-    printf("hi from sendMessage\n");
+    //printf("hi from sendMessage\n");
     pthread_mutex_lock(&mutexbuff);
     
     voidP = List_remove(sendingList);
     if(voidP){
         char *buffMoving = (voidP)->pItem;
-        printf("buffmoving: %s", &buffMoving);
+        //printf("buffmoving: %s", buffMoving);
         //strcpy(buffMoving, buff);
         
-        if(sendto(mfd, &buffMoving, sizeof(buffMoving), 0, (struct sockaddr*)&youaddr, (size_t)sizeof(youaddr))<0){
+        if(sendto(mfd, buffMoving, strlen(buffMoving), 0, (struct sockaddr*)&youaddr, (size_t)sizeof(youaddr))<0){
             perror("sendto failed");
         }
     }   
@@ -97,25 +97,37 @@ void* sendMessage(void *sendingList){
 }
 
 void* receiveMessage(void *receivingList){
-    printf("hi from receivemessage\n");
-    pthread_mutex_lock(&mutexbuff);
-  
-    recvfrom(mfd, &buffMoving, 1024,0,(struct sockaddr*)&myaddr,(socklen_t*)sizeof(myaddr));
-    List_append(receivingList, buffMoving);
+    //printf("hi from receivemessage\n");
+    pthread_mutex_lock(&mutexlist);
+    socklen_t size=sizeof(myaddr);
+    if(recvfrom(mfd, buffMoving, strlen(buffMoving),0,(struct sockaddr*)&myaddr,&size)<0){
+        perror("received failed");
+    }
+    //printf("got %s\n", buffMoving);
+    List_append(receivingList, &buffMoving);
 
-    pthread_mutex_unlock(&mutexbuff);
+    pthread_mutex_unlock(&mutexlist);
 }
 
 void* printMessage(void *receivingList){
     //pull a message out of the list and assign it to buff
-    printf("hi from printmessage\n");
+    //printf("hi from printmessage\n");
     pthread_mutex_lock(&mutexbuff);
     voidP = List_remove(receivingList);
-
-    buffMoving = voidP->pItem;
     
-    //maybe use recvlen instead?
-    printf("received message: \"%s\" \n", &buffMoving);
+    if(voidP){
+        buffMoving = voidP->pItem;
+        if(!buffMoving){
+            //printf("kms\n");
+        }else{
+            printf("received message: %s \n", buffMoving);
+            
+        }
+        
+    }else{
+        //printf("fucklkk\n");
+    }
+    
     //free(buffMoving);
     pthread_mutex_unlock(&mutexbuff);
 }
@@ -164,17 +176,14 @@ int main (int argc, char *argv[]){
 
     for(;;){
         pthread_create(&readInput, NULL, readingInput, (void*)sendingList);
+        pthread_create(&receiveMsg, NULL, receiveMessage, (void*)receivingList);
+        pthread_join(receiveMsg, NULL);
         pthread_join(readInput, NULL);
         
      
         pthread_create(&sendMsg, NULL, sendMessage, (void*)sendingList);
-        pthread_join(sendMsg, NULL);
-        
-
-        pthread_create(&receiveMsg, NULL, receiveMessage, (void*)receivingList);
-        pthread_join(receiveMsg, NULL);
-
         pthread_create(&printMsg, NULL, printMessage, (void*)receivingList);
+        pthread_join(sendMsg, NULL);
         pthread_join(printMsg,NULL);
     }
     free(ip);
