@@ -63,12 +63,14 @@ char* getIP(char* hostName){
 void* readingInput(void *sendingList){
     pthread_mutex_lock(&mutexbuff);
     printf("enter the message\n");
-    char buff[1024]=" ";
+    
     char* buffMoving=(char*)malloc(sizeof(char)*1024);
-    fgets(buff,1024,stdin);
-    strcpy(buff, buffMoving);
-    List_append(sendingList, &buffMoving);
- 
+    fgets(buffMoving,1024,stdin);
+    
+
+    List_append(sendingList, buffMoving);
+   
+
     pthread_mutex_unlock(&mutexbuff);
     
 }
@@ -83,7 +85,6 @@ void* sendMessage(void *sendingList){
     voidP = List_remove(sendingList);
     
     char *buffMoving = (voidP)->pItem;
-
     //printf("%s\n", buffMoving);
     //strcpy(buffMoving, buff);
     
@@ -102,8 +103,8 @@ void* receiveMessage(void *receivingList){
   
     char* buffMoving=(char*)malloc(1024);
     recvfrom(mfd, &buffMoving, 1024,0,(struct sockaddr*)&myaddr,(socklen_t*)sizeof(myaddr));
-    List_append(receivingList, &buffMoving);
-    
+    List_append(receivingList, buffMoving);
+
     pthread_mutex_unlock(&mutexbuff);
 }
 
@@ -116,7 +117,7 @@ void* printMessage(void *receivingList){
     buffMoving = voidP->pItem;
     
     //maybe use recvlen instead?
-    printf("received message: \"%s\" \n", buffMoving);
+    printf("received message: \"%s\" \n", &buffMoving);
     //free(buffMoving);
     pthread_mutex_unlock(&mutexbuff);
 }
