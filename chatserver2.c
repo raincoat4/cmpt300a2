@@ -64,13 +64,13 @@ void* readingInput(void *sendingList){
     pthread_mutex_lock(&mutexbuff);
     printf("enter the message\n");
     
-    char* buffMoving=(char*)malloc(sizeof(char)*1024);
+    char* buffMoving;
     fgets(buffMoving,1024,stdin);
     
 
     List_append(sendingList, buffMoving);
    
-
+    
     pthread_mutex_unlock(&mutexbuff);
     
 }
@@ -85,7 +85,7 @@ void* sendMessage(void *sendingList){
     voidP = List_remove(sendingList);
     
     char *buffMoving = (voidP)->pItem;
-    //printf("%s\n", buffMoving);
+    printf("sending: %s\n", &buffMoving);
     //strcpy(buffMoving, buff);
     
     if(sendto(mfd, &buffMoving, sizeof(buffMoving), 0, (struct sockaddr*)&youaddr, (size_t)sizeof(youaddr))<0){
@@ -101,24 +101,25 @@ void* receiveMessage(void *receivingList){
   
     pthread_mutex_lock(&mutexbuff);
   
-    char* buffMoving=(char*)malloc(1024);
+    char* buffMoving;
     recvfrom(mfd, &buffMoving, 1024,0,(struct sockaddr*)&myaddr,(socklen_t*)sizeof(myaddr));
     List_append(receivingList, buffMoving);
-
+    printf("recieved: %s\n", &buffMoving);
+    
     pthread_mutex_unlock(&mutexbuff);
 }
 
 void* printMessage(void *receivingList){
     //pull a message out of the list and assign it to buff
     pthread_mutex_lock(&mutexbuff);
-    char* buffMoving=(char*)malloc(1024);
+    char* buffMoving;
     voidP = List_remove(receivingList);
 
     buffMoving = voidP->pItem;
     
     //maybe use recvlen instead?
-    printf("received message: \"%s\" \n", &buffMoving);
-    //free(buffMoving);
+    printf("received message: %s \n", &buffMoving);
+    
     pthread_mutex_unlock(&mutexbuff);
 }
 
