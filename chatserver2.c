@@ -63,7 +63,7 @@ char* getIP(char* hostName){
 
 void* readingInput(void *sendingList){
     pthread_mutex_lock(&mutexlist);
-    //printf("enter the message\n");
+    printf("enter the message\n");
     
     fgets(buffMoving,1024,stdin);
     buffMoving[strcspn(buffMoving,"\n")]='\0';
@@ -176,14 +176,14 @@ int main (int argc, char *argv[]){
 
     for(;;){
         pthread_create(&readInput, NULL, readingInput, (void*)sendingList);
+        pthread_join(readInput, NULL);
         pthread_create(&receiveMsg, NULL, receiveMessage, (void*)receivingList);
         pthread_join(receiveMsg, NULL);
-        pthread_join(readInput, NULL);
         
      
         pthread_create(&sendMsg, NULL, sendMessage, (void*)sendingList);
-        pthread_create(&printMsg, NULL, printMessage, (void*)receivingList);
         pthread_join(sendMsg, NULL);
+        pthread_create(&printMsg, NULL, printMessage, (void*)receivingList);
         pthread_join(printMsg,NULL);
     }
     free(ip);
