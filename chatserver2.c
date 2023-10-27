@@ -38,23 +38,18 @@ char* getIP(char* hostName){
         return NULL;
     }
 
-    //printf("IP addresses for %s:\n\n", hostName);
     
     for(p = res; p != NULL; p = p->ai_next){
         void *addr;
-        //char *ipver;
         if(p->ai_family == AF_INET){
             struct sockaddr_in *ipv4 = (struct sockaddr_in *)p->ai_addr;
             addr = &(ipv4->sin_addr);
-            //ipver = "IPv4";
         }
         else{
             struct sockaddr_in6 *ipv6 = (struct sockaddr_in6 *)p->ai_addr;;
             addr = &(ipv6->sin6_addr);
-            //ipver = "IPv6";
         }
         inet_ntop(p->ai_family, addr, ipstr, sizeof ipstr);
-        //printf(" %s: %s\n", ipver, ipstr);
     }
     freeaddrinfo(res);
 
@@ -77,40 +72,30 @@ void* readingInput(void *sendingList){
     }
     List_append(sendingList, &buffSending);
 
-    //printf("hi from reading input\n");
     pthread_mutex_unlock(&mutexlist);
     
 }
 
 void* sendMessage(void *sendingList){
     //pull a message out ofthe list and assign it to buff
-    //printf("hi from sendMessage\n");
     pthread_mutex_lock(&mutexbuff);
     
     voidP = List_remove(sendingList);
     if(voidP){
-        buffSending = (voidP)->pItem;
-        //printf("buffmoving: %s", buffMoving);
-        //strcpy(buffMoving, buff);
-        
+        buffSending = (voidP)->pItem;      
         if(sendto(mfd, buffSending, 1024, 0, (struct sockaddr*)&youaddr, (size_t)sizeof(youaddr))<0){
             perror("sendto failed");
         }
-    }   
-
-   
-    
+    }       
     pthread_mutex_unlock(&mutexbuff);
 }
 
 void* receiveMessage(void *receivingList){
-    //printf("hi from receivemessage\n");
     pthread_mutex_lock(&mutexbuff);
     socklen_t size=sizeof(myaddr);
     if(recvfrom(mfd, buffRec, 1024,0,(struct sockaddr*)&myaddr,&size)<0){
         perror("received failed");
     }
-    //printf("got %s\n", buffMoving);
     List_append(receivingList, &buffRec);
 
     pthread_mutex_unlock(&mutexbuff);
@@ -118,30 +103,22 @@ void* receiveMessage(void *receivingList){
 
 void* printMessage(void *receivingList){
     //pull a message out of the list and assign it to buff
-    //printf("hi from printmessage\n");
     pthread_mutex_lock(&mutexbuff);
     voidP = List_remove(receivingList);
     
     if(voidP){
         buffRec = voidP->pItem;
-        if(!buffRec){
-            //printf("kms\n");
+        if(buffRec){
+            ;
         }else{
-            printf("received message: %s \n", buffRec);
-            
+            printf("received message: %s \n", buffRec);            
         }
         
-    }else{
-        //printf("fucklkk\n");
     }
-    
-    //free(buffMoving);
     pthread_mutex_unlock(&mutexbuff);
 }
 
 int main (int argc, char *argv[]){
-    //int mfd, tfd;
-    //buff is now global
     buffSending=(char*)malloc(sizeof(char)*1024);
     buffRec=(char*)malloc(sizeof(char)*1024);
     pthread_t readInput, sendMsg, receiveMsg, printMsg;
@@ -185,9 +162,7 @@ int main (int argc, char *argv[]){
     for(;;){
         iret1 = pthread_create(&readInput, NULL, readingInput, (void*)sendingList);
         pthread_join(readInput, NULL);
-        pthread_mutex_lock(&mutexflag);
         if(flag){
-            pthread_mutex_unlock(&mutexflag);
             break;
         }
         iret2 = pthread_create(&sendMsg, NULL, sendMessage, (void*)sendingList);
