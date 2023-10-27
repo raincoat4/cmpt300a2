@@ -16,13 +16,14 @@
 //like arguments taken from main
 //also not sure how the for loop is gonna work for this
 
-pthread_mutex_t mutexlist, mutexbuff;
+pthread_mutex_t mutexlist, mutexbuff, mutexflag;
 int mfd=0;
 Node* voidP;
 struct sockaddr_in myaddr;
 struct sockaddr_in youaddr;
 char* buffSending="";
 char* buffRec = "";
+int flag = 0;
 char* getIP(char* hostName){
     struct addrinfo hints, *res, *p;
     int status;
@@ -64,11 +65,16 @@ char* getIP(char* hostName){
 
 void* readingInput(void *sendingList){
     pthread_mutex_lock(&mutexlist);
-    printf("enter the message\n");
+    printf("enter the message: ");
     
     fgets(buffSending,1024,stdin);
     buffSending[strcspn(buffSending,"\n")]='\0';
-
+    if(strcmp(buffSending, "!") == 0){
+        pthread_mutex_lock(&mutexflag);
+        flag = 1;
+        pthread_mutex_unlock(&mutexflag);
+        return NULL;
+    }
     List_append(sendingList, &buffSending);
 
     //printf("hi from reading input\n");
@@ -177,13 +183,18 @@ int main (int argc, char *argv[]){
 	}
 
     for(;;){
-        pthread_create(&readInput, NULL, readingInput, (void*)sendingList);
+        iret1 = pthread_create(&readInput, NULL, readingInput, (void*)sendingList);
         pthread_join(readInput, NULL);
-        pthread_create(&sendMsg, NULL, sendMessage, (void*)sendingList);
+        pthread_mutex_lock(&mutexflag);
+        if(flag){
+            pthread_mutex_unlock(&mutexflag);
+            break;
+        }
+        iret2 = pthread_create(&sendMsg, NULL, sendMessage, (void*)sendingList);
         pthread_join(sendMsg, NULL);
-        pthread_create(&receiveMsg, NULL, receiveMessage, (void*)receivingList);
+        iret3 = pthread_create(&receiveMsg, NULL, receiveMessage, (void*)receivingList);
         pthread_join(receiveMsg, NULL);
-        pthread_create(&printMsg, NULL, printMessage, (void*)receivingList);
+        iret4 = pthread_create(&printMsg, NULL, printMessage, (void*)receivingList);
         pthread_join(printMsg,NULL);
     }
     free(ip);
