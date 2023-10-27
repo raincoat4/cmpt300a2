@@ -21,7 +21,8 @@ int mfd=0;
 Node* voidP;
 struct sockaddr_in myaddr;
 struct sockaddr_in youaddr;
-char* buffMoving="";
+char* buffSending="";
+char* buffRec = "";
 char* getIP(char* hostName){
     struct addrinfo hints, *res, *p;
     int status;
@@ -65,11 +66,11 @@ void* readingInput(void *sendingList){
     pthread_mutex_lock(&mutexlist);
     printf("enter the message\n");
     
-    fgets(buffMoving,1024,stdin);
-    buffMoving[strcspn(buffMoving,"\n")]='\0';
+    fgets(buffSending,1024,stdin);
+    buffSending[strcspn(buffSending,"\n")]='\0';
 
-    List_append(sendingList, &buffMoving);
-    
+    List_append(sendingList, &buffSending);
+
     //printf("hi from reading input\n");
     pthread_mutex_unlock(&mutexlist);
     
@@ -82,11 +83,11 @@ void* sendMessage(void *sendingList){
     
     voidP = List_remove(sendingList);
     if(voidP){
-        char *buffMoving = (voidP)->pItem;
+        buffSending = (voidP)->pItem;
         //printf("buffmoving: %s", buffMoving);
         //strcpy(buffMoving, buff);
         
-        if(sendto(mfd, buffMoving, strlen(buffMoving), 0, (struct sockaddr*)&youaddr, (size_t)sizeof(youaddr))<0){
+        if(sendto(mfd, buffSending, 1024, 0, (struct sockaddr*)&youaddr, (size_t)sizeof(youaddr))<0){
             perror("sendto failed");
         }
     }   
@@ -98,15 +99,15 @@ void* sendMessage(void *sendingList){
 
 void* receiveMessage(void *receivingList){
     //printf("hi from receivemessage\n");
-    pthread_mutex_lock(&mutexlist);
+    pthread_mutex_lock(&mutexbuff);
     socklen_t size=sizeof(myaddr);
-    if(recvfrom(mfd, buffMoving, strlen(buffMoving),0,(struct sockaddr*)&myaddr,&size)<0){
+    if(recvfrom(mfd, buffRec, 1024,0,(struct sockaddr*)&myaddr,&size)<0){
         perror("received failed");
     }
     //printf("got %s\n", buffMoving);
-    List_append(receivingList, &buffMoving);
+    List_append(receivingList, &buffRec);
 
-    pthread_mutex_unlock(&mutexlist);
+    pthread_mutex_unlock(&mutexbuff);
 }
 
 void* printMessage(void *receivingList){
@@ -116,11 +117,11 @@ void* printMessage(void *receivingList){
     voidP = List_remove(receivingList);
     
     if(voidP){
-        buffMoving = voidP->pItem;
-        if(!buffMoving){
+        buffRec = voidP->pItem;
+        if(!buffRec){
             //printf("kms\n");
         }else{
-            printf("received message: %s \n", buffMoving);
+            printf("received message: %s \n", buffRec);
             
         }
         
@@ -135,7 +136,8 @@ void* printMessage(void *receivingList){
 int main (int argc, char *argv[]){
     //int mfd, tfd;
     //buff is now global
-    buffMoving=(char*)malloc(sizeof(char)*1024);
+    buffSending=(char*)malloc(sizeof(char)*1024);
+    buffRec=(char*)malloc(sizeof(char)*1024);
     pthread_t readInput, sendMsg, receiveMsg, printMsg;
     int iret1, iret2, iret3, iret4;
     List* sendingList = List_create();
@@ -177,15 +179,14 @@ int main (int argc, char *argv[]){
     for(;;){
         pthread_create(&readInput, NULL, readingInput, (void*)sendingList);
         pthread_join(readInput, NULL);
-        pthread_create(&receiveMsg, NULL, receiveMessage, (void*)receivingList);
-        pthread_join(receiveMsg, NULL);
-        
-     
         pthread_create(&sendMsg, NULL, sendMessage, (void*)sendingList);
         pthread_join(sendMsg, NULL);
+        pthread_create(&receiveMsg, NULL, receiveMessage, (void*)receivingList);
+        pthread_join(receiveMsg, NULL);
         pthread_create(&printMsg, NULL, printMessage, (void*)receivingList);
         pthread_join(printMsg,NULL);
     }
     free(ip);
-    free(buffMoving);
+    free(buffSending);
+    free(buffRec);
 }
