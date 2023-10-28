@@ -19,11 +19,12 @@
 pthread_mutex_t mutexlist, mutexbuff, mutexflag;
 int mfd=0;
 Node* voidP;
+Node* voidPr;
 struct sockaddr_in myaddr;
 struct sockaddr_in youaddr;
 char* buffSending="";
 char* buffRec = "";
-int flag = 0;
+bool flag=false;
 char* getIP(char* hostName){
     struct addrinfo hints, *res, *p;
     int status;
@@ -59,26 +60,27 @@ char* getIP(char* hostName){
 }
 
 void* readingInput(void *sendingList){
-    pthread_mutex_lock(&mutexlist);
-    printf("enter the message: ");
+   
+    
     
     fgets(buffSending,1024,stdin);
     buffSending[strcspn(buffSending,"\n")]='\0';
     if(strcmp(buffSending, "!") == 0){
         pthread_mutex_lock(&mutexflag);
-        flag = 1;
+        
+        flag = true;
         pthread_mutex_unlock(&mutexflag);
         return NULL;
     }
     List_append(sendingList, &buffSending);
 
-    pthread_mutex_unlock(&mutexlist);
+    
     
 }
 
 void* sendMessage(void *sendingList){
     //pull a message out ofthe list and assign it to buff
-    pthread_mutex_lock(&mutexbuff);
+   
     
     voidP = List_remove(sendingList);
     if(voidP){
@@ -87,41 +89,88 @@ void* sendMessage(void *sendingList){
             perror("sendto failed");
         }
     }       
-    pthread_mutex_unlock(&mutexbuff);
+    
 }
 
 void* receiveMessage(void *receivingList){
-    pthread_mutex_lock(&mutexbuff);
     socklen_t size=sizeof(myaddr);
-    if(recvfrom(mfd, buffRec, 1024,0,(struct sockaddr*)&myaddr,&size)<0){
-        perror("received failed");
-    }
-    List_append(receivingList, &buffRec);
+    fd_set rset;
+    FD_ZERO(&rset);
+    FD_SET(mfd, &rset);
+    struct timeval timeout;
+    timeout.tv_sec =1;
+    timeout.tv_usec =0;
+    int ready =select(mfd+1, &rset, NULL,NULL,&timeout);
 
-    pthread_mutex_unlock(&mutexbuff);
+    if(FD_ISSET(mfd,&rset)){
+        if(recvfrom(mfd, buffRec, 1024,0,(struct sockaddr*)&myaddr,&size)<0){
+            perror("received failed");
+        }
+        printf("received:%s\n", buffRec);
+        List_append(receivingList, &buffRec);
+    }
+    
 }
 
 void* printMessage(void *receivingList){
     //pull a message out of the list and assign it to buff
-    pthread_mutex_lock(&mutexbuff);
-    voidP = List_remove(receivingList);
     
-    if(voidP){
-        buffRec = voidP->pItem;
+    
+  
+    voidPr = List_remove(receivingList);
+    
+    if(voidPr){
+        buffRec = voidPr->pItem;
         if(buffRec){
-            ;
+                ;
         }else{
             printf("received message: %s \n", buffRec);            
         }
-        
+            
     }
-    pthread_mutex_unlock(&mutexbuff);
+   
+    
+    
 }
 
+void* senders(void *sendingList){
+    printf("enter your messages: \n");
+    for(;;){
+        readingInput(sendingList);
+        sendMessage(sendingList);
+        pthread_mutex_lock(&mutexflag);
+        if(flag){
+            pthread_mutex_unlock(&mutexflag);
+            return NULL;
+        }
+        pthread_mutex_unlock(&mutexflag);
+    }
+    
+}
+
+void* receivers(void *receivingList){
+    
+    for(;;){
+        pthread_mutex_lock(&mutexflag);
+        if(flag){
+            
+            pthread_mutex_unlock(&mutexflag);
+           
+            return NULL;
+        }
+        
+        pthread_mutex_unlock(&mutexflag);
+        receiveMessage(receivingList);
+        printMessage(receivingList);
+        
+        
+    }
+    
+}
 int main (int argc, char *argv[]){
     buffSending=(char*)malloc(sizeof(char)*1024);
     buffRec=(char*)malloc(sizeof(char)*1024);
-    pthread_t readInput, sendMsg, receiveMsg, printMsg;
+    pthread_t readInput, sendMsg, receiveMsg, printMsg, psenders, preceivers;
     int iret1, iret2, iret3, iret4;
     List* sendingList = List_create();
     List* receivingList = List_create();
@@ -159,19 +208,14 @@ int main (int argc, char *argv[]){
 		fprintf(stderr, "inet_aton() failed\n");
 	}
 
-    for(;;){
-        iret1 = pthread_create(&readInput, NULL, readingInput, (void*)sendingList);
-        pthread_join(readInput, NULL);
-        if(flag){
-            break;
-        }
-        iret2 = pthread_create(&sendMsg, NULL, sendMessage, (void*)sendingList);
-        pthread_join(sendMsg, NULL);
-        iret3 = pthread_create(&receiveMsg, NULL, receiveMessage, (void*)receivingList);
-        pthread_join(receiveMsg, NULL);
-        iret4 = pthread_create(&printMsg, NULL, printMessage, (void*)receivingList);
-        pthread_join(printMsg,NULL);
-    }
+    
+    pthread_create(&psenders, NULL, senders, (void*)sendingList);
+    pthread_create(&preceivers, NULL, receivers, (void*)receivingList);
+
+    pthread_join(psenders,NULL);
+    pthread_join(preceivers,NULL);
+    
+    
     free(ip);
     free(buffSending);
     free(buffRec);
